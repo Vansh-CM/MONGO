@@ -12,53 +12,53 @@ exports.addOrder = (req , res)=>{
 exports.salesByProduct = async  (req, res) => {
   let sales = await Order.aggregate([
         {
-            $unwind: '$products'  // Unwind the products array in the Order collection
+            $unwind: '$products'  
         },
         {
             $lookup: {
-                from: 'products',  // Lookup products collection
-                localField: 'products.product',  // Use the product ID in the order's products array
-                foreignField: '_id',  // Match to the _id field in the products collection
-                as: 'productDetails'  // Store the result in productDetails field
+                from: 'products',  
+                localField: 'products.product', 
+                foreignField: '_id', 
+                as: 'productDetails' 
             }
         },
         {
-            $unwind: '$productDetails'  // Unwind the productDetails array from the lookup
+            $unwind: '$productDetails'  
         },
         {
             $group: {
-                _id: '$products.product',  // Group by product ID
-                totalQuantitySold: { $sum: '$products.quantity' },  // Sum the quantities sold
+                _id: '$products.product',  
+                totalQuantitySold: { $sum: '$products.quantity' },  
                 totalRevenue: {
                     $sum: {
-                        $multiply: ['$products.quantity', '$productDetails.price']  // Calculate total revenue for each product
+                        $multiply: ['$products.quantity', '$productDetails.price']  
                     }
                 }
             }
         },
         {
             $lookup: {
-                from: 'products',  // Lookup the product name from the products collection
-                localField: '_id',  // Use the product ID that was grouped in the previous step
-                foreignField: '_id',  // Match with the _id field in the products collection
-                as: 'product'  // Store the result in the product field
+                from: 'products',  
+                localField: '_id',  
+                foreignField: '_id', 
+                as: 'product' 
             }
         },
         {
-            $unwind: '$product'  // Unwind the product field to get product name
+            $unwind: '$product'  
         },
         {
             $project: {
-                productName: '$product.name',  // Return the product name
-                totalQuantitySold: 1,  // Return the total quantity sold
-                totalRevenue: 1  // Return the total revenue
+                productName: '$product.name',  
+                totalQuantitySold: 1,  
+                totalRevenue: 1 
             }
         }
     ])
     .exec()
-    
+    const orders = await Order.find().sort({ createdAt: -1 }).exec()
     // Execute the aggregation query
-    res.status(200).json({ message: 'Success', data: sales });
+    res.status(200).json({ message: 'Success', data: orders });
     // .then(sales => {
     //     console.log(sales)
     // })
@@ -67,3 +67,89 @@ exports.salesByProduct = async  (req, res) => {
     //     res.status(500).json({ message: 'Server error' });
     // });
 };
+
+exports.totalSellAmount= async (req, res) => {
+    let totalSell = await Order.aggregate([{
+        $group :{
+            _id : null , totalSell : {
+                $sum : "$totalAmount"
+            }
+        }
+    }])
+    res.status(200).json({ message: 'Success', data: totalSell });
+
+}
+//   { $group: { _id: null, totalSales: { $sum: "$totalAmount" } } }
+
+exports.topOrder=(req, res)=>{
+        //  let topOrder= Order.aggregate([
+        //    {
+        //     $sort:{
+        //         totalAmount : -1
+        //     }
+        //    },
+        // //    {
+        // //     $limit : 1
+        // //    },
+           
+        // //    {
+        // //     $lookup:{
+        // //         from:"products",
+        // //         localField:"products.product",
+        // //         foreignField:"_id",
+        // //         as : "productDetails"
+        // //     }
+        // //    },
+          
+        // //    {
+        // //     $project :{ products : "productDetails" , total : "order.totalAmount"}
+        // //    }
+        //  ]).exec()
+        //  res.send({topOrder : topOrder})
+}
+
+exports.topSell = async ( req, res) =>{
+        let topSell = await Order.aggregate([
+            { $unwind: "$products" },
+            { $lookup: {
+                from: "products",
+                localField: "products.product",
+                foreignField: "_id",
+                as: "productDetails"
+              }
+            },
+            { $unwind: "$productDetails" },
+            { $project: { 
+                orderId: "$_id", 
+                productName: "$productDetails.name", 
+                quantity: "$products.quantity", 
+                price: "$productDetails.price" 
+              }
+            }
+          ]);
+        // await Order.aggregate([
+        //     {$unwind : "$products"},
+        //     {
+        //         $group :{
+        //                 _id : "$products.product" , 
+        //                 totalQuantity :{
+        //                     $sum : "$products.quantity"
+        //                 }
+        //         }
+        //     }
+        //     ,{
+        //         $sort :{
+        //              totalQuantity : -1
+        //         }
+        //     }]
+        // )
+        res.status(200).json({ message: 'Success', data: topSell });
+
+        //   Order.aggregate([
+        //     { $unwind: "$products" },
+        //     { $group: { _id: "$products.product", totalQuantity: { $sum: "$products.quantity" } } },
+        //     { $sort: { totalQuantity: -1 } } // Sort by totalQuantity in descending order
+        //   ]);
+
+        
+}

@@ -13,3 +13,8 @@ exports.login = async (req, res)=>{
   let data = await User.findOne({email : req.body.email ,  password : req.body.password})
   res.status(200).json({msg : "success ...",data : data})
 }
+
+exports.userList = async (req, res)=>{
+  let data = await User.find()
+  res.status(200).json({msg : "success ...",data : data})
+}
